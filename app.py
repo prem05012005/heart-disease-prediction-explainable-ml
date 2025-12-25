@@ -162,3 +162,16 @@ if st.button("Predict"):
 
     st.subheader("Feature Contribution Explanation")
     plot_contributions_streamlit(contributions)
+    st.markdown("""
+### 📘 How to Read This Chart
+
+- Each bar represents a clinical feature that influenced the prediction.
+- **Red bars** indicate features that **increase** the likelihood of heart disease.
+- **Green bars** indicate features that **decrease** the likelihood of heart disease.
+- The **length of the bar** shows how strong the influence is.
+
+**Important note:**  
+This explanation helps users understand the model’s decision,  
+but it does **not replace professional medical advice**.
+""")
+
