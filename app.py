@@ -59,6 +59,29 @@ model.fit(X_train_scaled, y_train)
 # Streamlit UI
 # -----------------------------
 st.title("❤️ Heart Disease Prediction System")
+st.markdown("""
+### 📝 How to Fill the Inputs
+
+**Chest Pain Type (cp):**
+- `0` → Typical angina (heart-related chest pain)
+- `1` → Atypical angina
+- `2` → Non-anginal pain
+- `3` → Asymptomatic (no chest pain)
+
+**Rest ECG (restecg):**
+- `0` → Normal
+- `1` → ST-T wave abnormality
+- `2` → Left ventricular hypertrophy
+
+**Exercise Induced Angina (exang):**
+- `0` → No chest pain during exercise
+- `1` → Chest pain during exercise
+
+**Fasting Blood Sugar (fbs):**
+- `0` → ≤ 120 mg/dL (Normal)
+- `1` → > 120 mg/dL (High)
+""")
+
 st.write("Enter patient details to predict heart disease risk")
 
 # User inputs
