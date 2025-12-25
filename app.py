@@ -12,16 +12,13 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 # -----------------------------
 data = pd.read_csv("data/heart_disease_uci.csv")
 
-# Drop columns with many missing values / no medical meaning
 drop_cols = ["id", "ca", "thal", "slope"]
 data = data.drop(columns=drop_cols)
 
-# Fill numeric missing values
 numeric_cols = ["trestbps", "chol", "thalch", "oldpeak"]
 for col in numeric_cols:
     data[col] = data[col].fillna(data[col].median())
 
-# Encode categorical variables
 data["sex"] = data["sex"].map({"Male": 1, "Female": 0})
 
 le_cp = LabelEncoder()
@@ -34,24 +31,19 @@ binary_cols = ["fbs", "exang"]
 for col in binary_cols:
     data[col] = data[col].fillna(data[col].mode()[0])
 
-# Target variable
 data["target"] = data["num"].apply(lambda x: 1 if x > 0 else 0)
 data = data.drop(columns=["num", "dataset"])
 
-# Features and target
 X = data.drop(columns=["target"])
 y = data["target"]
 
-# Train-test split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.25, random_state=42, stratify=y
 )
 
-# Scaling
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 
-# Train model
 model = LogisticRegression(max_iter=3000, solver="liblinear", C=1.5)
 model.fit(X_train_scaled, y_train)
 
@@ -59,6 +51,7 @@ model.fit(X_train_scaled, y_train)
 # Streamlit UI
 # -----------------------------
 st.title("❤️ Heart Disease Prediction System")
+
 st.markdown("""
 ### 📝 How to Fill the Inputs
 
@@ -84,7 +77,9 @@ st.markdown("""
 
 st.write("Enter patient details to predict heart disease risk")
 
-# User inputs
+# -----------------------------
+# User Inputs
+# -----------------------------
 age = st.number_input("Age", 1, 120, 55)
 sex = st.selectbox("Sex", ["Male", "Female"])
 cp = st.number_input("Chest Pain Type (0–3)", 0, 3, 2)
@@ -100,15 +95,14 @@ oldpeak = st.number_input("Oldpeak", 0.0, 6.0, 2.3)
 # Visualization function
 # -----------------------------
 def plot_contributions_streamlit(contributions):
-    # Take top 5 features
     sorted_items = sorted(
         contributions.items(),
         key=lambda x: abs(x[1]),
         reverse=True
     )[:5]
 
-    features = [item[0] for item in sorted_items]
-    values = [item[1] for item in sorted_items]
+    features = [f for f, _ in sorted_items]
+    values = [v for _, v in sorted_items]
     colors = ["red" if v > 0 else "green" for v in values]
 
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -136,10 +130,7 @@ if st.button("Predict"):
         "oldpeak": oldpeak
     }])
 
-    # Scale input
     input_scaled = scaler.transform(input_data)
-
-    # Prediction
     prob = model.predict_proba(input_scaled)[0][1]
     prediction = "YES" if prob >= 0.5 else "NO"
 
@@ -147,31 +138,53 @@ if st.button("Predict"):
     st.write("Heart Disease Probability:", round(prob, 3))
     st.write("Final Prediction:", prediction)
 
-    # -----------------------------
-    # Explainability logic
-    # -----------------------------
+    # -------- Explainability --------
     contributions = {}
     for col in input_data.columns:
         modified = input_data.copy()
         modified[col] = X[col].mean()
-
         modified_scaled = scaler.transform(modified)
         new_prob = model.predict_proba(modified_scaled)[0][1]
-
         contributions[col] = prob - new_prob
 
     st.subheader("Feature Contribution Explanation")
     plot_contributions_streamlit(contributions)
+
     st.markdown("""
 ### 📘 How to Read This Chart
-
-- Each bar represents a clinical feature that influenced the prediction.
-- **Red bars** indicate features that **increase** the likelihood of heart disease.
-- **Green bars** indicate features that **decrease** the likelihood of heart disease.
-- The **length of the bar** shows how strong the influence is.
-
-**Important note:**  
-This explanation helps users understand the model’s decision,  
-but it does **not replace professional medical advice**.
+- **Red bars** → Increase heart disease risk  
+- **Green bars** → Reduce heart disease risk  
+- Longer bars → Stronger influence  
 """)
 
+    # -------- Human-friendly explanation --------
+    st.markdown("### 🧠 What These Top Factors Mean")
+
+    feature_descriptions = {
+        "oldpeak": "ST depression during exercise. Higher values indicate more heart stress.",
+        "cp": "Type of chest pain experienced by the patient.",
+        "exang": "Chest pain occurring during physical exercise.",
+        "sex": "Biological sex (statistical risk factor).",
+        "chol": "Cholesterol level in the blood."
+    }
+
+    top_features = sorted(
+        contributions.items(),
+        key=lambda x: abs(x[1]),
+        reverse=True
+    )[:5]
+
+    for i, (feature, value) in enumerate(top_features, start=1):
+        impact = "increases" if value > 0 else "reduces"
+        strength = "strongly" if abs(value) > 0.15 else "moderately"
+
+        st.write(
+            f"**{i}. {feature.upper()}** – {feature_descriptions.get(feature, '')} "
+            f"This factor **{strength} {impact}** the predicted heart disease risk."
+        )
+
+    st.markdown("""
+⚠️ **Note:**  
+This explanation is personalized for the entered values and is meant for educational purposes only.
+It does not replace professional medical advice.
+""")
